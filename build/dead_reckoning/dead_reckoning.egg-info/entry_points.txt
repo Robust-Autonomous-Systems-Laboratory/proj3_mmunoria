@@ -1,0 +1,2 @@
+[console_scripts]
+estimator_node = dead_reckoning.estimator_node:main
