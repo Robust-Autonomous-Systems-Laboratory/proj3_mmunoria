@@ -1,4 +1,4 @@
-# proj3_mmunoria Project 3 — Dead Reckoning State Estimation
+# proj3_mmunoria
 
 ## Package Overview
 
