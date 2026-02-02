@@ -14,7 +14,8 @@ class DeadReckoningEstimator(Node):
     def __init__(self):
         super().__init__('estimator_node')
 
-        
+        #initializing all the values to zero
+
         self.cmd_x, self.cmd_y, self.cmd_theta = 0.0, 0.0, 0.0
         self.imu_x, self.imu_y, self.imu_theta = 0.0, 0.0, 0.0
         self.imu_vx, self.imu_vy = 0.0, 0.0
@@ -27,12 +28,14 @@ class DeadReckoningEstimator(Node):
         self.last_cmd_time = None
         self.last_imu_time = None
 
+        # Path for RViz 
        
         self.cmd_path = Path()
         self.cmd_path.header.frame_id = "odom"
         self.imu_path = Path()
         self.imu_path.header.frame_id = "odom"
 
+        #The QoS profile for path msg
        
         path_qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
@@ -41,11 +44,15 @@ class DeadReckoningEstimator(Node):
             depth=1,
         )
 
+        #The QoS profile for odom msg
+
         odom_qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
             depth=10,
         )
+
+        #the QoS profile for subscrptions to topics with best efort
 
         sub_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -55,8 +62,12 @@ class DeadReckoningEstimator(Node):
 
         self.tf_broadcaster = TransformBroadcaster(self)
 
+        #Subscribers 
+
         self.create_subscription(TwistStamped, '/cmd_vel', self.cmd_callback, sub_qos)
         self.create_subscription(Imu, '/imu', self.imu_callback, sub_qos)
+
+        #Publishers
 
         self.cmd_odom_pub = self.create_publisher(Odometry, '/dead_reckoning/odom', odom_qos)
         self.imu_odom_pub = self.create_publisher(Odometry, '/imu_integration/odom',odom_qos)
@@ -71,6 +82,8 @@ class DeadReckoningEstimator(Node):
         return t - last_time, t
 
     def cmd_callback(self, msg):
+        # FFrom my understanding i think for bag files, we use the current node time or wait for a stamped version.
+        #I assumed that the bag file uses Twist (no header),
         
         t_now = self.get_clock().now().nanoseconds * 1e-9
         if self.last_cmd_time is None:
@@ -102,7 +115,8 @@ class DeadReckoningEstimator(Node):
         ax_b = float(msg.linear_acceleration.x)
         ay_b = float(msg.linear_acceleration.y)
 
-        # estimate bias for first N samples
+        # estimate bias for first N samples, i did this in an attempt to stop it from exploding un controllably
+
         if self.bias_samples < self.bias_N:
             self.ax_bias += ax_b
             self.ay_bias += ay_b
@@ -110,20 +124,22 @@ class DeadReckoningEstimator(Node):
             if self.bias_samples == self.bias_N:
                 self.ax_bias /= self.bias_N
                 self.ay_bias /= self.bias_N
+
             return  # don't integrate while calibrating
 
         # subtract bias
         ax_b -= self.ax_bias
         ay_b -= self.ay_bias
 
-        # 2. Transform Body Accel to World Accel
+        # 2. Transform Body Acc to World Accc
         ax_body = msg.linear_acceleration.x
         ay_body = msg.linear_acceleration.y
 
         ax_world = ax_body * math.cos(self.imu_theta) - ay_body * math.sin(self.imu_theta)
         ay_world = ax_body * math.sin(self.imu_theta) + ay_body * math.cos(self.imu_theta)
 
-        # 3. Double Integration
+        # 3. Double Integration : seem like this section was giving me the most trouble
+
         self.imu_vx += ax_world * dt
         self.imu_vy += ay_world * dt
         self.imu_x += self.imu_vx * dt
@@ -137,7 +153,7 @@ class DeadReckoningEstimator(Node):
         # Create Odom
         odom = Odometry()
         odom.header.stamp = self.get_clock().now().to_msg()
-        odom.header.frame_id = "odom"
+        odom.header.frame_id = "odom" 
         odom.pose.pose.position.x = x
         odom.pose.pose.position.y = y
         odom.pose.pose.orientation.z = math.sin(theta / 2.0)
@@ -159,7 +175,11 @@ class DeadReckoningEstimator(Node):
         t.child_frame_id = 'base_link'
         t.transform.translation.x = x
         t.transform.translation.y = y
+
+        #using the same oriantation as the Odom msg
         t.transform.rotation = odom.pose.pose.orientation
+
+        #sending the transform
         self.tf_broadcaster.sendTransform(t)
 
 def main(args=None):
