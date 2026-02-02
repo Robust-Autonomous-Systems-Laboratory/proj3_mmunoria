@@ -6,51 +6,49 @@
 - **Package name:** `dead_reckoning`
 - **Node name:** `estimator_node`
 
-## How to Build and Run
+## How to Build and Run :  Multiple terminals are required
 
 ### 1️ Create the workspace
 
 ```bash
 mkdir -p ~/proj3_ws/src
 ```
-## 2 Clone the Repository
+### 2 Create a Pakcage : while in the src directory
+```bash
+ros2 pkg create --build-type ament_python --node-name estimator_node dead_reckoning
 
+cd ..
+```
+## 3 Clone the Repository
 ```bash
 git clone https://github.com/Robust-Autonomous-Systems-Laboratory/proj3_mmunoria.git
 ```
-### 3 Assuming the bag file is already present
+
+replace the estimator_node.py with the one from the above command located in
+- *src/dead_reckoning/dead_reckoning*
+
+### 4 Assuming the bag file is already present
 Place the bag file in the workspace root
 ```bash
 cp -r /path/to/proj3 ~/proj3_ws/
 ```
-## Add the following to your setup.py
-```code
-entry_points={
-        'console_scripts': [
-            'estimator_node = dead_reckoning.estimator_node:main'
-        ],
-    },
-````
-### 4 Build and Source the workspace
+
+### 5 Build and Source the workspace
 ```bash
 cd ~/proj3_ws
 colcon build
 source install/setup.bash
 ```
 
-### 5 Run the estimator node
+### 6 Run the estimator node
 ```bash
 ros2 run dead_reckoning estimator
 ```
-### 6 Before visualizing with RViz2, run the xacro file and the state publisher gui (2 new terminals)
+### 7 Before visualizing with RViz2, run the xacro file and the state publisher gui (new terminal)
 ```bash
-terminal 1
 ros2 run robot_state_publisher robot_state_publisher --ros-args -p robot_description:="$(xacro ~/proj3_ws/kart.urdf.xacro)"
-
-terminal 2
-ros2 run joint_state_publisher_gui joint_state_publisher_gui
 ```
-### 7 Visualization (RViz2) (new tweminal)
+### 8 Visualization (RViz2) (new tweminal)
 ```bash
 ros2 run rviz2 rviz2
 ```
