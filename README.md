@@ -23,6 +23,14 @@ Place the bag file in the workspace root
 ```bash
 cp -r /path/to/proj3 ~/proj3_ws/
 ```
+## Add the following to your setup.py
+```code
+entry_points={
+        'console_scripts': [
+            'estimator_node = dead_reckoning.estimator_node:main'
+        ],
+    },
+````
 ### 4 Build and Source the workspace
 ```bash
 cd ~/proj3_ws
